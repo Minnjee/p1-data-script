@@ -1,17 +1,24 @@
 # p1-data-script
 
-一个天气数据脚本：调公开天气 API，把未来三天的预报整理成表格输出。
+一个天气数据脚本：调公开天气 API，把未来三天的预报整理成表格 —— **打印到屏幕 + 落盘成 CSV / JSON**。
 
 > 「AI 实习计划」阶段 A 的 **P1 项目** —— 目标是跑通「取数 → 处理 → 输出」这条链路。
 
 ## 效果
 
 ```
-python weather_first.py
+$ python weather_first.py
 
-2026-09-15  雷阵雨    最高 30.9  最低 24.7  降雨概率 90%
-2026-09-16  小阵雨    最高 30.8  最低 24.6  降雨概率 64%
-2026-09-17  小毛毛雨  最高 32.0  最低 25.0  降雨概率 13%
+2026-09-17  小毛毛雨  最高 32.8  最低 25.2  降雨概率 69%
+2026-09-18  小毛毛雨  最高 33.2  最低 25.4  降雨概率 33%
+2026-09-19  小毛毛雨  最高 34.3  最低 25.2  降雨概率 45%
+```
+
+同时生成两个文件：
+
+```
+out/weather.csv     ← Excel / WPS 直接打开，中文不乱码
+out/weather.json    ← 结构化数据，程序可以直接读
 ```
 
 ## 快速开始
@@ -20,6 +27,8 @@ python weather_first.py
 pip install requests
 python weather_first.py
 ```
+
+首次运行会自动创建 `out/` 目录。
 
 ## 数据源：Open-Meteo（免 API key）
 
@@ -55,11 +64,23 @@ python weather_first.py
 | 技术点 | 用在哪 |
 |---|---|
 | `requests` + `timeout` | 调接口 |
-| `try / except requests.exceptions.RequestException` | 网络失败时给友好提示，而不是吐一屏红色报错 |
+| `try / except requests.exceptions.RequestException` | 网络失败给友好提示。**这一个父类能抓到 `Timeout` / `HTTPError` / `JSONDecodeError` 全部** |
 | **两步 API 调用** | 后一步依赖前一步的返回值 |
 | **嵌套 dict / list 定位字段** | `weather["daily"]["temperature_2m_max"][0]` |
-| **字典做查表** | 天气码（数字）→ 中文 |
-| `dict.get(键, 默认值)` | 查不到的码返回"未知"，不崩溃 |
+| **字典查表 + `.get()` 防御** | 天气码（数字）→ 中文 |
+| `pathlib.Path` + `mkdir(exist_ok=True)` | 保证 `out/` 存在；`Path(__file__).parent` 把路径**锚在脚本目录**，从哪运行都不会跑错地方 |
+| **文件写入**（`with open(...)`） | 落盘 |
+| `csv.DictWriter` | 写 CSV —— `fieldnames` 决定**列的顺序** |
+| `json.dump(..., ensure_ascii=False)` | 写 JSON，中文不转义 |
+
+## ⚠️ 两个文件，两种编码（反直觉，别改错）
+
+| 文件 | 编码 | 为什么 |
+|---|---|---|
+| `weather.csv` | **`utf-8-sig`** | 带 BOM，**Excel 才知道这是 UTF-8**；不加中文就乱码 |
+| `weather.json` | `utf-8` | **JSON 标准不允许 BOM**，加了反而会让某些解析器报错 |
+
+> BOM 是文件开头的 3 个**不可见**字节。在 VS Code 里两个版本看起来一模一样 —— **只有 Excel/WPS 能暴露差别**。
 
 ## 天气码为什么要查表
 
@@ -87,7 +108,10 @@ WMO 码表只定义了 0~99 中的一部分，**API 可能返回没收录的码*
 
 ```
 p1-data-script/
-└── weather_first.py      # 天气脚本
+├── weather_first.py      # 天气脚本
+└── out/                  # 输出目录（脚本自动创建）
+    ├── weather.csv
+    └── weather.json
 ```
 
 ## 已完成 / 待办
@@ -97,8 +121,8 @@ p1-data-script/
 - [x] 解析三天预报的 5 个字段
 - [x] 天气码翻译成中文
 - [x] 网络失败给友好提示
-- [ ] 落盘 CSV / JSON
-- [ ] 失败自动重试
+- [x] **落盘 CSV / JSON**
+- [ ] 失败自动重试（现在失败一次就退出）
 - [ ] 历史累积 + 趋势对比
 - [ ] 城市名支持命令行参数（现在写死在代码里）
 
@@ -107,4 +131,4 @@ p1-data-script/
 - Open-Meteo 免费版**仅限非商业用途**
 - 城市名写死在代码里（`Foshan`），换城市要改代码
 - **没有重试机制**，请求失败直接退出
-- 目前只输出到屏幕，**还没写文件**
+- 每次运行**覆盖**输出文件，还没做历史累积
