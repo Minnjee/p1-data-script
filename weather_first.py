@@ -40,9 +40,9 @@ for i in range(3):
     预报.append(shuju)
     print(f"{riqi[i]}  {WMO_ZH.get(tianqima[i], '未知')}  最高 {zuigaowen[i]}  最低 {zuidiwen[i]}  降雨概率 {jiangyugailv[i]}%")
 with open(BASE / "out" / "weather.json", 'w', encoding='utf-8') as f:
-        json.dump(预报,f,ensure_ascii=False,indent=2)
+    json.dump(预报,f,ensure_ascii=False,indent=2)
 fieldnames = ['日期', '天气', '最高温', '最低温', '降雨概率']
-with open(BASE / "out" / "weather.csv", 'w', encoding='utf-8', newline='') as f:
+with open(BASE / "out" / "weather.csv", 'w', encoding='utf-8-sig', newline='') as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(预报)
