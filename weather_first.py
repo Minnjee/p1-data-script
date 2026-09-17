@@ -1,5 +1,12 @@
 import requests
 import sys
+import json
+import csv
+from pathlib import Path
+BASE = Path(__file__).parent
+(BASE / "out").mkdir(exist_ok=True)
+
+
 try:
     geo = requests.get("https://geocoding-api.open-meteo.com/v1/search",params={"name": "Foshan", "count": 1, "language": "zh"},timeout=15,).json()
     lat = geo["results"][0]["latitude"]
@@ -27,5 +34,15 @@ WMO_ZH = {
     95: "雷阵雨",
     96: "雷阵雨伴小冰雹",  99: "雷阵雨伴大冰雹",
 }
+预报 = []
 for i in range(3):
+    shuju = {'日期': riqi[i], '天气': WMO_ZH.get(tianqima[i], '未知'), '最高温': zuigaowen[i], '最低温': zuidiwen[i], '降雨概率': jiangyugailv[i]}
+    预报.append(shuju)
     print(f"{riqi[i]}  {WMO_ZH.get(tianqima[i], '未知')}  最高 {zuigaowen[i]}  最低 {zuidiwen[i]}  降雨概率 {jiangyugailv[i]}%")
+with open(BASE / "out" / "weather.json", 'w', encoding='utf-8') as f:
+        json.dump(预报,f,ensure_ascii=False,indent=2)
+fieldnames = ['日期', '天气', '最高温', '最低温', '降雨概率']
+with open(BASE / "out" / "weather.csv", 'w', encoding='utf-8', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(预报)
