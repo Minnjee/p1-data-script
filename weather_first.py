@@ -2,23 +2,32 @@ import requests
 import sys
 import json
 import csv
+import time
 from pathlib import Path
 BASE = Path(__file__).parent
 (BASE / "out").mkdir(exist_ok=True)
 
 
-try:
-    geo = requests.get("https://geocoding-api.open-meteo.com/v1/search",params={"name": "Foshan", "count": 1, "language": "zh"},timeout=15,).json()
-    lat = geo["results"][0]["latitude"]
-    lon = geo["results"][0]["longitude"]
-    weather = requests.get("https://api.open-meteo.com/v1/forecast",params={"latitude": lat,"longitude": lon,"daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode","timezone": "Asia/Shanghai","forecast_days": 3,},timeout=15,).json()
-    riqi = weather["daily"]["time"]
-    zuigaowen = weather["daily"]["temperature_2m_max"]
-    zuidiwen = weather["daily"]["temperature_2m_min"]
-    jiangyugailv = weather["daily"]["precipitation_probability_max"]
-    tianqima = weather["daily"]["weathercode"]
-except requests.exceptions.RequestException as e:
-    print('天气服务暂时不可用，请稍后重试')
+成功 = False
+for i in range(3):    
+    try:
+        geo = requests.get("https://geocoding-api.open-meteo.com/v1/search",params={"name": "Foshan", "count": 1, "language": "zh"},timeout=15,).json()
+        lat = geo["results"][0]["latitude"]
+        lon = geo["results"][0]["longitude"]
+        weather = requests.get("https://api.open-meteo.com/v1/forecast",params={"latitude": lat,"longitude": lon,"daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode","timezone": "Asia/Shanghai","forecast_days": 3,},timeout=15,).json()
+        riqi = weather["daily"]["time"]
+        zuigaowen = weather["daily"]["temperature_2m_max"]
+        zuidiwen = weather["daily"]["temperature_2m_min"]
+        jiangyugailv = weather["daily"]["precipitation_probability_max"]
+        tianqima = weather["daily"]["weathercode"]
+        成功=True
+        break
+    except requests.exceptions.RequestException as e:
+        print('天气服务暂时不可用')
+        print(f"正在第{i+1}次请求，2秒后重试")
+        time.sleep(2)
+if not 成功:
+    print("请求失败，请检查网络连接或稍后再试。")
     sys.exit()
 WMO_ZH = {
     0: "晴",           1: "大致晴朗",      2: "局部多云",      3: "阴",
